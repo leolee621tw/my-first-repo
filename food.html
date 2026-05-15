@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🍜 西湖美食圖鑑 3.0</title>
+<style>
+  :root {
+    --primary: #FF6B35;
+    --secondary: #FFD166;
+    --dark: #1a1a2e;
+    --card: #16213e;
+    --text: #eaeaea;
+    --sub: #aaa;
+    --green: #06D6A0;
+    --purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--dark); color: var(--text); font-family: -apple-system, sans-serif; min-height: 100vh; padding-bottom: 80px; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #FF6B35, #f7c59f); padding: 20px 16px 16px; text-align: center; }
+  .header h1 { font-size: 1.5rem; font-weight: 800; color: #1a1a2e; }
+  .header p { font-size: 0.8rem; color: #1a1a2e; opacity: 0.7; margin-top: 2px; }
+
+  /* Bottom Nav */
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid #333; display: flex; z-index: 100; }
+  .nav-item { flex: 1; padding: 10px 0; text-align: center; cursor: pointer; font-size: 0.65rem; color: var(--sub); transition: color 0.2s; }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .icon { font-size: 1.4rem; display: block; margin-bottom: 2px; }
+
+  /* Pages */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+
+  /* Card */
+  .card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #2a2a4a; }
+
+  /* Spin Wheel */
+  .spin-section { text-align: center; }
+  .wheel-wrap { position: relative; width: 240px; height: 240px; margin: 20px auto; }
+  .wheel { width: 240px; height: 240px; border-radius: 50%; background: conic-gradient(
+    #FF6B35 0deg 60deg, #FFD166 60deg 120deg, #06D6A0 120deg 180deg,
+    #a855f7 180deg 240deg, #3b82f6 240deg 300deg, #f43f5e 300deg 360deg
+  ); transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); position: relative; }
+  .wheel::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 60px; height: 60px; background: var(--dark); border-radius: 50%; border: 4px solid var(--primary); }
+  .wheel-pointer { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 2rem; z-index: 10; }
+
+  .budget-select { display: flex; gap: 8px; justify-content: center; margin: 12px 0; flex-wrap: wrap; }
+  .budget-btn { padding: 8px 16px; border-radius: 20px; border: 2px solid var(--primary); background: transparent; color: var(--primary); font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+  .budget-btn.active { background: var(--primary); color: white; }
+
+  .spin-btn { background: linear-gradient(135deg, var(--primary), #f7c59f); color: #1a1a2e; border: none; padding: 14px 40px; border-radius: 30px; font-size: 1.1rem; font-weight: 800; cursor: pointer; margin-top: 16px; width: 100%; max-width: 280px; }
+  .spin-btn:disabled { opacity: 0.5; }
+
+  .result-card { background: linear-gradient(135deg, #1a1a2e, #16213e); border: 2px solid var(--primary); border-radius: 20px; padding: 20px; margin-top: 16px; display: none; }
+  .result-card.show { display: block; }
+  .result-name { font-size: 1.4rem; font-weight: 800; color: var(--secondary); }
+  .result-info { font-size: 0.85rem; color: var(--sub); margin-top: 6px; }
+  .result-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .action-btn { flex: 1; padding: 10px; border-radius: 12px; border: none; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+  .btn-accept { background: var(--green); color: #1a1a2e; }
+  .btn-skip { background: #333; color: var(--sub); }
+  .btn-mengpo { background: #a855f7; color: white; }
+
+  /* Feed */
+  .feed-item { background: var(--card); border-radius: 16px; padding: 14px; margin-bottom: 10px; border: 1px solid #2a2a4a; }
+  .feed-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .feed-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+  .feed-name { font-size: 0.9rem; font-weight: 600; }
+  .feed-time { font-size: 0.7rem; color: var(--sub); }
+  .feed-restaurant { font-size: 1rem; font-weight: 700; color: var(--secondary); }
+  .feed-dish { font-size: 0.85rem; color: var(--primary); margin-top: 2px; }
+  .feed-review { font-size: 0.85rem; color: var(--text); margin-top: 6px; line-height: 1.5; }
+  .feed-photo { width: 100%; border-radius: 12px; margin-top: 8px; max-height: 200px; object-fit: cover; }
+  .feed-reactions { display: flex; gap: 8px; margin-top: 10px; }
+  .reaction-btn { padding: 6px 10px; border-radius: 20px; border: 1px solid #333; background: transparent; color: var(--sub); font-size: 0.75rem; cursor: pointer; }
+
+  /* Leaderboard */
+  .rank-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--card); border-radius: 14px; margin-bottom: 8px; border: 1px solid #2a2a4a; }
+  .rank-num { font-size: 1.2rem; font-weight: 800; width: 32px; text-align: center; flex-shrink: 0; }
+  .rank-info { flex: 1; }
+  .rank-name { font-size: 0.95rem; font-weight: 600; }
+  .rank-level { font-size: 0.75rem; color: var(--sub); margin-top: 2px; }
+  .rank-score { font-size: 1.1rem; font-weight: 800; color: var(--secondary); }
+
+  /* Review Form */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 0.85rem; color: var(--sub); margin-bottom: 6px; display: block; }
+  .form-input { width: 100%; background: #0f0f23; border: 1px solid #333; border-radius: 10px; padding: 10px 12px; color: var(--text); font-size: 0.9rem; }
+  .form-input:focus { outline: none; border-color: var(--primary); }
+  textarea.form-input { height: 80px; resize: none; }
+  .submit-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--primary), #f7c59f); color: #1a1a2e; border: none; border-radius: 14px; font-size: 1rem; font-weight: 800; cursor: pointer; }
+
+  /* Login */
+  .login-wrap { text-align: center; padding: 40px 20px; }
+  .login-title { font-size: 2rem; margin-bottom: 8px; }
+  .login-sub { color: var(--sub); font-size: 0.9rem; margin-bottom: 30px; }
+  .nickname-input { width: 100%; max-width: 280px; background: var(--card); border: 2px solid var(--primary); border-radius: 14px; padding: 12px 16px; color: var(--text); font-size: 1rem; text-align: center; margin-bottom: 12px; }
+  .nickname-input:focus { outline: none; }
+  .login-btn { background: linear-gradient(135deg, var(--primary), #f7c59f); color: #1a1a2e; border: none; padding: 14px 40px; border-radius: 30px; font-size: 1rem; font-weight: 800; cursor: pointer; width: 100%; max-width: 280px; }
+
+  /* Toast */
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 20px; border-radius: 20px; font-size: 0.85rem; z-index: 1000; display: none; text-align: center; max-width: 300px; }
+  .toast.show { display: block; }
+
+  /* Misc */
+  .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .badge-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; background: #2a2a4a; color: var(--sub); margin: 2px; }
+  .closed-notice { text-align: center; padding: 40px 20px; color: var(--sub); font-size: 1.2rem; }
+  .score-chip { background: var(--green); color: #1a1a2e; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 700; }
+  select.form-input { appearance: none; }
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Header -->
+<div class="header">
+  <h1>🍜 西湖美食圖鑑 3.0</h1>
+  <p id="header-sub">台灣房屋總部 · 全天候美食雷達</p>
+</div>
+
+<!-- Login Page -->
+<div id="login-page" style="padding:16px">
+  <div class="login-wrap">
+    <div class="login-title">🍜</div>
+    <div style="font-size:1.4rem;font-weight:800;margin-bottom:8px">歡迎加入西湖美食圖鑑</div>
+    <div class="login-sub">輸入你的 Email 和江湖稱號開始冒險！</div>
+    <input class="nickname-input" id="login-email" type="email" placeholder="你的 Gmail">
+    <br><br>
+    <input class="nickname-input" id="login-nickname" type="text" placeholder="江湖稱號（如：法務部彭于晏）">
+    <br><br>
+    <button class="login-btn" onclick="doLogin()">🚀 出發！</button>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="main-app" style="display:none">
+
+  <!-- Page: 轉輪盤 -->
+  <div class="page active" id="page-spin">
+    <div id="spin-closed" class="closed-notice" style="display:none">
+      🛑 輪盤保養中！<br>每日轉盤開放時間為 08:00~22:00 唷！
+    </div>
+    <div id="spin-open">
+      <div class="spin-section">
+        <div class="section-title">🎲 今日懸賞輪盤</div>
+        <div style="font-size:0.8rem;color:var(--sub);margin-bottom:12px">選擇預算，轉出今日美食命運！</div>
+        <div class="budget-select">
+          <button class="budget-btn active" onclick="selectBudget(this,'100以內')">$100以內</button>
+          <button class="budget-btn" onclick="selectBudget(this,'100-200')">$100-200</button>
+          <button class="budget-btn" onclick="selectBudget(this,'200以上')">$200以上</button>
+        </div>
+        <div class="wheel-wrap">
+          <div class="wheel-pointer">▼</div>
+          <div class="wheel" id="wheel"></div>
+        </div>
+        <button class="spin-btn" id="spin-btn" onclick="spinWheel()">🎲 轉動命運！</button>
+      </div>
+
+      <div class="result-card" id="result-card">
+        <div style="font-size:0.8rem;color:var(--sub);margin-bottom:6px">🎯 今日懸賞目標</div>
+        <div class="result-name" id="result-name">—</div>
+        <div class="result-info" id="result-info"></div>
+        <div class="result-actions">
+          <button class="action-btn btn-accept" onclick="acceptTask()">✅ 就決定吃這家！</button>
+          <button class="action-btn btn-skip" onclick="skipTask()">🛵 略過</button>
+        </div>
+        <button class="action-btn btn-mengpo" style="width:100%;margin-top:8px" onclick="useMengpo()">🍵 喝孟婆湯重轉</button>
+      </div>
+
+      <div style="margin-top:20px">
+        <div class="section-title">📝 自由食記</div>
+        <button class="submit-btn" style="background:linear-gradient(135deg,#a855f7,#3b82f6)" onclick="showPage('page-write')">
+          ➕ 新增自由食記
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page: 動態牆 -->
+  <div class="page" id="page-feed">
+    <div class="section-title">🔥 總部吃貨動態</div>
+    <div id="feed-list"><div style="text-align:center;color:var(--sub);padding:40px">載入中...</div></div>
+  </div>
+
+  <!-- Page: 寫食記 -->
+  <div class="page" id="page-write">
+    <div class="section-title">📝 上傳食記</div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">餐廳名稱 *</label>
+        <select class="form-input" id="write-restaurant">
+          <option value="">選擇餐廳...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">餐點名稱 *</label>
+        <input class="form-input" id="write-dish" type="text" placeholder="例如：雞腿便當">
+      </div>
+      <div class="form-group">
+        <label class="form-label">口味介紹 *（超過50字額外加分！）</label>
+        <textarea class="form-input" id="write-review" placeholder="告訴大家好不好吃、推薦什麼..."></textarea>
+        <div style="font-size:0.75rem;color:var(--sub);margin-top:4px" id="char-count">0 / 50字</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">照片網址（選填，+5分）</label>
+        <input class="form-input" id="write-photo" type="url" placeholder="https://...">
+      </div>
+      <button class="submit-btn" onclick="submitReview()">🚀 發布食記！</button>
+    </div>
+  </div>
+
+  <!-- Page: 積分榜 -->
+  <div class="page" id="page-rank">
+    <div class="section-title">👑 總部積分榜</div>
+    <div id="rank-list"><div style="text-align:center;color:var(--sub);padding:40px">載入中...</div></div>
+  </div>
+
+  <!-- Page: 我的 -->
+  <div class="page" id="page-me">
+    <div class="section-title">👤 我的資料</div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:8px">🍽️</div>
+      <div style="font-size:1.2rem;font-weight:800" id="me-nickname">—</div>
+      <div style="font-size:0.8rem;color:var(--sub);margin-top:4px" id="me-email">—</div>
+      <div style="font-size:0.85rem;color:var(--primary);margin-top:8px" id="me-level">—</div>
+      <div style="font-size:2rem;font-weight:800;color:var(--secondary);margin-top:8px" id="me-score">0</div>
+      <div style="font-size:0.8rem;color:var(--sub)">總積分</div>
+    </div>
+    <div class="card">
+      <div style="font-size:0.9rem;font-weight:600;margin-bottom:8px">🍵 孟婆湯剩餘</div>
+      <div style="font-size:1.5rem;font-weight:800;color:#a855f7" id="me-mengpo">1</div>
+      <div style="font-size:0.75rem;color:var(--sub)">每日重置 1 次</div>
+    </div>
+    <button class="submit-btn" style="background:#333;color:var(--sub)" onclick="logout()">登出</button>
+  </div>
+
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav" id="bottom-nav" style="display:none">
+  <div class="nav-item active" onclick="showPage('page-spin')">
+    <span class="icon">🎲</span>轉輪盤
+  </div>
+  <div class="nav-item" onclick="showPage('page-feed')">
+    <span class="icon">🔥</span>動態
+  </div>
+  <div class="nav-item" onclick="showPage('page-write')">
+    <span class="icon">📝</span>食記
+  </div>
+  <div class="nav-item" onclick="showPage('page-rank')">
+    <span class="icon">👑</span>排行
+  </div>
+  <div class="nav-item" onclick="showPage('page-me')">
+    <span class="icon">👤</span>我的
+  </div>
+</div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbzX3qXZ6oKWhUAlF0WRv4OZLCkGvcQeNjHjqMQ9mP4TROiEDPjCWXD2Y9a_387UJx01Pw/exec';
+let user = null;
+let restaurants = [];
+let selectedBudget = '100以內';
+let currentResult = null;
+let taskAccepted = false;
+let spinning = false;
+
+// Init
+window.onload = () => {
+  const saved = localStorage.getItem('xhu_user');
+  if (saved) {
+    user = JSON.parse(saved);
+    showApp();
+  }
+  checkTime();
+};
+
+function checkTime() {
+  const h = new Date().getHours();
+  const open = h >= 8 && h < 22;
+  const el1 = document.getElementById('spin-closed');
+  const el2 = document.getElementById('spin-open');
+  if (el1 && el2) {
+    el1.style.display = open ? 'none' : 'block';
+    el2.style.display = open ? 'block' : 'none';
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const nickname = document.getElementById('login-nickname').value.trim();
+  if (!email || !nickname) { showToast('請填寫 Email 和江湖稱號！'); return; }
+  if (!email.includes('@')) { showToast('請輸入有效的 Email！'); return; }
+
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'registerUser', email, nickname })
+    });
+    const data = await res.json();
+    user = { email, nickname };
+    localStorage.setItem('xhu_user', JSON.stringify(user));
+    showApp();
+  } catch(e) {
+    // 即使 API 失敗，本地先登入
+    user = { email, nickname };
+    localStorage.setItem('xhu_user', JSON.stringify(user));
+    showApp();
+  }
+}
+
+function showApp() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  document.getElementById('bottom-nav').style.display = 'flex';
+  document.getElementById('header-sub').textContent = `👤 ${user.nickname}`;
+  document.getElementById('me-nickname').textContent = user.nickname;
+  document.getElementById('me-email').textContent = user.email;
+  loadRestaurants();
+  loadFeeds();
+  loadLeaderboard();
+  loadMyData();
+}
+
+async function loadRestaurants() {
+  try {
+    const res = await fetch(`${API}?action=getRestaurants`);
+    const data = await res.json();
+    restaurants = data.restaurants || [];
+    const sel = document.getElementById('write-restaurant');
+    restaurants.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r['店名'];
+      opt.textContent = `${r['店名']} (${r['步行時間']}分鐘)`;
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    // 使用範例資料
+    restaurants = [
+      { 店名: '示範餐廳A', 標籤: '便當', 預估價位: '$100以內', 步行時間: '5', 描述: '好吃的便當' },
+      { 店名: '示範餐廳B', 標籤: '麵食', 預估價位: '$100-200', 步行時間: '8', 描述: '美味麵條' },
+    ];
+    const sel = document.getElementById('write-restaurant');
+    restaurants.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r['店名'];
+      opt.textContent = r['店名'];
+      sel.appendChild(opt);
+    });
+  }
+}
+
+async function loadFeeds() {
+  try {
+    const res = await fetch(`${API}?action=getFeeds`);
+    const data = await res.json();
+    renderFeeds(data.feeds || []);
+  } catch(e) {
+    renderFeeds([]);
+  }
+}
+
+function renderFeeds(feeds) {
+  const el = document.getElementById('feed-list');
+  if (!feeds.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--sub);padding:40px">還沒有食記，快去吃飯！🍜</div>';
+    return;
+  }
+  el.innerHTML = feeds.map(f => `
+    <div class="feed-item">
+      <div class="feed-header">
+        <div class="feed-avatar">🍽️</div>
+        <div>
+          <div class="feed-name">${f['Google_Email'] ? f['Google_Email'].split('@')[0] : '匿名'}</div>
+          <div class="feed-time">${f['上傳時間'] ? new Date(f['上傳時間']).toLocaleString('zh-TW') : ''}</div>
+        </div>
+        ${f['是否達成懸賞']==='是' ? '<span class="score-chip">+懸賞</span>' : ''}
+      </div>
+      <div class="feed-restaurant">🏪 ${f['店名'] || ''}</div>
+      <div class="feed-dish">🍴 ${f['餐點名稱'] || ''}</div>
+      <div class="feed-review">${f['口味介紹'] || ''}</div>
+      ${f['圖片網址'] ? `<img class="feed-photo" src="${f['圖片網址']}" onerror="this.style.display='none'">` : ''}
+      <div class="feed-reactions">
+        <button class="reaction-btn">🤤 好吃</button>
+        <button class="reaction-btn">🤣 圖文不符</button>
+        <button class="reaction-btn">🙏 感謝探路</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadLeaderboard() {
+  try {
+    const res = await fetch(`${API}?action=getLeaderboard`);
+    const data = await res.json();
+    renderLeaderboard(data.users || []);
+  } catch(e) {
+    renderLeaderboard([]);
+  }
+}
+
+function renderLeaderboard(users) {
+  const el = document.getElementById('rank-list');
+  if (!users.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--sub);padding:40px">還沒有人上榜，快去吃！</div>';
+    return;
+  }
+  const medals = ['🥇','🥈','🥉'];
+  el.innerHTML = users.map((u, i) => `
+    <div class="rank-item">
+      <div class="rank-num">${medals[i] || (i+1)}</div>
+      <div class="rank-info">
+        <div class="rank-name">${u['同仁稱號'] || u['Google_Email']}</div>
+        <div class="rank-level">${u['當前階級'] || '🍼 菜鳥試毒員'}</div>
+      </div>
+      <div class="rank-score">${u['總積分'] || 0}</div>
+    </div>
+  `).join('');
+}
+
+async function loadMyData() {
+  try {
+    const res = await fetch(`${API}?action=getLeaderboard`);
+    const data = await res.json();
+    const me = (data.users || []).find(u => u['Google_Email'] === user.email);
+    if (me) {
+      document.getElementById('me-score').textContent = me['總積分'] || 0;
+      document.getElementById('me-level').textContent = me['當前階級'] || '🍼 菜鳥試毒員';
+      document.getElementById('me-mengpo').textContent = me['剩餘孟婆湯數量'] ?? 1;
+    }
+  } catch(e) {}
+}
+
+function selectBudget(btn, budget) {
+  document.querySelectorAll('.budget-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedBudget = budget;
+}
+
+function spinWheel() {
+  if (spinning) return;
+  if (!restaurants.length) { showToast('還沒有餐廳資料！請先在試算表新增餐廳。'); return; }
+
+  let filtered = restaurants.filter(r => {
+    if (selectedBudget === '100以內') return r['預估價位'] && r['預估價位'].includes('100以內');
+    if (selectedBudget === '100-200') return r['預估價位'] && r['預估價位'].includes('100-200');
+    if (selectedBudget === '200以上') return r['預估價位'] && r['預估價位'].includes('200以上');
+    return true;
+  });
+  if (!filtered.length) filtered = restaurants;
+
+  // 10% 盲盒
+  const isBlind = Math.random() < 0.1;
+
+  spinning = true;
+  document.getElementById('spin-btn').disabled = true;
+  document.getElementById('result-card').classList.remove('show');
+
+  const deg = 720 + Math.random() * 1080;
+  const wheel = document.getElementById('wheel');
+  wheel.style.transform = `rotate(${deg}deg)`;
+
+  const picked = filtered[Math.floor(Math.random() * filtered.length)];
+  currentResult = picked;
+
+  setTimeout(() => {
+    spinning = false;
+    document.getElementById('spin-btn').disabled = false;
+    const card = document.getElementById('result-card');
+    card.classList.add('show');
+
+    if (isBlind) {
+      document.getElementById('result-name').textContent = '🎁 命運盲吃大挑戰！';
+      document.getElementById('result-info').textContent = '店名已隱藏！最高 5 倍勇氣獎勵！敢不敢？';
+    } else {
+      document.getElementById('result-name').textContent = picked['店名'] || '神秘餐廳';
+      document.getElementById('result-info').textContent =
+        `🚶 ${picked['步行時間'] || '?'} 分鐘 · ${picked['預估價位'] || ''} · ${picked['描述'] || ''}`;
+    }
+  }, 4200);
+}
+
+function acceptTask() {
+  taskAccepted = true;
+  showToast('✅ 任務接受！記得在 24:00 前完成食記喔！');
+  showPage('page-write');
+  if (currentResult) {
+    const sel = document.getElementById('write-restaurant');
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === currentResult['店名']) {
+        sel.selectedIndex = i;
+        break;
+      }
+    }
+  }
+}
+
+function skipTask() {
+  taskAccepted = false;
+  currentResult = null;
+  document.getElementById('result-card').classList.remove('show');
+  showToast('🛵 已略過今日懸賞任務');
+}
+
+async function useMengpo() {
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'useMengpoTang', email: user.email })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('🍵 喝下孟婆湯，忘掉剛剛轉到的店，我們重新來過。');
+      document.getElementById('result-card').classList.remove('show');
+      document.getElementById('me-mengpo').textContent = data.remaining;
+      setTimeout(() => spinWheel(), 1000);
+    } else {
+      showToast(data.message || '孟婆湯已用完！');
+    }
+  } catch(e) {
+    showToast('孟婆湯使用失敗，請稍後再試');
+  }
+}
+
+async function submitReview() {
+  const restaurant = document.getElementById('write-restaurant').value;
+  const dish = document.getElementById('write-dish').value.trim();
+  const review = document.getElementById('write-review').value.trim();
+  const photo = document.getElementById('write-photo').value.trim();
+
+  if (!restaurant || !dish || !review) { showToast('請填寫餐廳、餐點和口味介紹！'); return; }
+
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'submitReview',
+        email: user.email,
+        restaurant, dishName: dish, review,
+        photoUrl: photo, hasPhoto: !!photo,
+        isTask: taskAccepted && currentResult && currentResult['店名'] === restaurant
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`🎉 食記發布成功！獲得 ${data.score} 積分！`);
+      document.getElementById('write-dish').value = '';
+      document.getElementById('write-review').value = '';
+      document.getElementById('write-photo').value = '';
+      taskAccepted = false;
+      loadFeeds();
+      loadLeaderboard();
+      loadMyData();
+      setTimeout(() => showPage('page-feed'), 1500);
+    } else {
+      showToast(data.message || '發布失敗');
+    }
+  } catch(e) {
+    showToast('網路錯誤，請稍後再試');
+  }
+}
+
+document.getElementById('write-review').addEventListener('input', function() {
+  document.getElementById('char-count').textContent = `${this.value.length} / 50字`;
+});
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const map = { 'page-spin':0, 'page-feed':1, 'page-write':2, 'page-rank':3, 'page-me':4 };
+  const navItems = document.querySelectorAll('.nav-item');
+  if (map[id] !== undefined) navItems[map[id]].classList.add('active');
+  if (id === 'page-feed') loadFeeds();
+  if (id === 'page-rank') loadLeaderboard();
+  if (id === 'page-me') loadMyData();
+  checkTime();
+}
+
+function logout() {
+  localStorage.removeItem('xhu_user');
+  location.reload();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
